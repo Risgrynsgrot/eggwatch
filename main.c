@@ -22,6 +22,43 @@ u8g2_t u8g2;
 #define PIN_DC 4
 #define PIN_RST 11
 
+#define MAX_HUNGER 100
+typedef struct char_stats {
+  int hunger;
+  int money;
+} char_stats_t;
+
+char_stats_t pet;
+
+void init_game()
+{
+  pet = (char_stats_t) {
+    .hunger = 25,
+    .money = 10,
+  };
+}
+
+#define PET_MONEY_POS_X 10
+#define PET_MONEY_POS_Y 10
+#define PET_STAT_FONT_HEIGHT 14
+#define PET_STAT_PADDING 3
+
+void pet_draw(u8g2_t *draw, char_stats_t *pet) {
+  char text_buf[128];
+  sprintf(text_buf, "$: %d", pet->money);
+  int y_pos = PET_STAT_FONT_HEIGHT;
+  u8g2_DrawStr(draw, PET_MONEY_POS_X, y_pos, text_buf);
+  y_pos += PET_STAT_FONT_HEIGHT + PET_STAT_PADDING;
+  sprintf(text_buf, "H: %d", pet->hunger);
+  u8g2_DrawStr(draw, PET_MONEY_POS_X, y_pos, text_buf);
+  y_pos += PET_STAT_FONT_HEIGHT + PET_STAT_PADDING;
+
+  u8g2_DrawFrame(draw, PET_MONEY_POS_X, y_pos, 100, 5);
+  int percentage = (pet->hunger * 100 / MAX_HUNGER * 100) / 100;
+  u8g2_DrawBox(draw, PET_MONEY_POS_X, y_pos, percentage, 5);
+
+}
+
 uint8_t u8x8_byte_pico_hw_spi(u8x8_t *u8x8, uint8_t msg, uint8_t arg_int,
                               void *arg_ptr) {
   uint8_t *data;
@@ -99,13 +136,13 @@ uint8_t u8x8_gpio_and_delay_pico(u8x8_t *u8x8, uint8_t msg, uint8_t arg_int,
   return 1;
 }
 
-void draw_display(int x, int y, char* text, int* out_width) {
+void draw_display() {
   u8g2_ClearBuffer(&u8g2);
   //u8g2_ClearDisplay(&u8g2);
   u8g2_SetDrawColor(&u8g2, 1);
-  u8g2_SetFont(&u8g2, u8g2_font_t0_11_te);
-  *out_width = u8g2_DrawStr(&u8g2, x, y, text);
-  u8g2_DrawFrame(&u8g2, x + 50, y, 10, 10);
+  u8g2_SetFont(&u8g2, u8g2_font_fur14_tf);
+  //*out_width = u8g2_DrawStr(&u8g2, x, y, text);
+  pet_draw(&u8g2, &pet);
   u8g2_UpdateDisplay(&u8g2);
 }
 
@@ -116,8 +153,8 @@ void display_sequence() {
   u8g2_InitDisplay(&u8g2); // send init sequence to the display, display is in
                            // sleep mode after this,
   u8g2_SetPowerSave(&u8g2, 0);
-  int out_width;
-  draw_display(20, 20, "Hello world", &out_width);
+  /* int out_width; */
+  /* draw_display(20, 20, "Hello world", &out_width); */
 }
 
 int main() {
@@ -125,9 +162,11 @@ int main() {
   gpio_set_function(UART_TX_PIN, GPIO_FUNC_UART);
   gpio_set_function(UART_RX_PIN, GPIO_FUNC_UART);
 
+  init_game();
+
   // U8G2
   display_sequence();
-  char text_buf[128] = "Hello world";
+  //char text_buf[128] = "Hello world";
 
   stdio_init_all();
   int x = 30;
@@ -146,11 +185,13 @@ int main() {
       //y_dir *= -1;
     }
 
-    uint32_t time = to_ms_since_boot(get_absolute_time());
-    sprintf(text_buf, "time: %d", time);
-    draw_display(x, y, text_buf, &out_width);
+    pet.hunger++;
+    pet.hunger %= MAX_HUNGER;
+    /* uint32_t time = to_ms_since_boot(get_absolute_time()); */
+    /* sprintf(text_buf, "time: %u", time); */
+    draw_display();
 
-    sleep_ms(1000);
+    sleep_ms(10);
   }
 
   return 0;
