@@ -33,8 +33,10 @@ set(CMAKE_CXX_STANDARD 17)
 
 pico_sdk_init()
 
+file(GLOB PROJ_SRC src/*.c)
+message(${PROJ_SRC})
 add_executable(${target_proj}
-    main.c
+    ${PROJ_SRC}
 )
 
 target_include_directories(${target_proj} PRIVATE u8g2/csrc)

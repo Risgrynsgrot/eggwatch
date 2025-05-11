@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <u8g2.h>
+#include "menu.h"
 
 #define UART_ID uart1
 #define BAUD_RATE 9600
@@ -29,13 +30,22 @@ typedef struct char_stats {
 } char_stats_t;
 
 char_stats_t pet;
+menu_t menu;
 
-void init_game()
+int menu_test(void) {
+  return 1;
+}
+
+void init_game(u8g2_t* u8g2)
 {
-  pet = (char_stats_t) {
-    .hunger = 25,
-    .money = 10,
+  pet = (char_stats_t){
+      .hunger = 25,
+      .money = 10,
   };
+
+  menu_init(&menu, u8g2);
+  menu_add_item(&menu, "bing", menu_test);
+  menu_add_item(&menu, "swag", menu_test);
 }
 
 #define PET_MONEY_POS_X 10
@@ -91,6 +101,7 @@ uint8_t u8x8_byte_pico_hw_spi(u8x8_t *u8x8, uint8_t msg, uint8_t arg_int,
 
 uint8_t u8x8_gpio_and_delay_pico(u8x8_t *u8x8, uint8_t msg, uint8_t arg_int,
                                  void *arg_ptr) {
+  (void)arg_ptr;
   switch (msg) {
   case U8X8_MSG_GPIO_AND_DELAY_INIT:
     spi_init(SPI_PORT, SPI_SPEED);
@@ -142,7 +153,8 @@ void draw_display() {
   u8g2_SetDrawColor(&u8g2, 1);
   u8g2_SetFont(&u8g2, u8g2_font_fur14_tf);
   //*out_width = u8g2_DrawStr(&u8g2, x, y, text);
-  pet_draw(&u8g2, &pet);
+  /* pet_draw(&u8g2, &pet); */
+  menu_draw(&menu);
   u8g2_UpdateDisplay(&u8g2);
 }
 
@@ -162,29 +174,14 @@ int main() {
   gpio_set_function(UART_TX_PIN, GPIO_FUNC_UART);
   gpio_set_function(UART_RX_PIN, GPIO_FUNC_UART);
 
-  init_game();
+  init_game(&u8g2);
 
   // U8G2
   display_sequence();
-  //char text_buf[128] = "Hello world";
+
 
   stdio_init_all();
-  int x = 30;
-  int y = 50;
-  int x_dir = 1;
-  int y_dir = -1;
-  int out_width = 0;
-
   while (1) {
-    //x += x_dir;
-    //y += y_dir;
-    if (x > 128 - out_width || x < 0) {
-      //x_dir *= -1;
-    }
-    if (y > 128 || y < 11) {
-      //y_dir *= -1;
-    }
-
     pet.hunger++;
     pet.hunger %= MAX_HUNGER;
     /* uint32_t time = to_ms_since_boot(get_absolute_time()); */
