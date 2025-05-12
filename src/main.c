@@ -1,11 +1,15 @@
 #include "hardware/gpio.h"
 #include "hardware/spi.h"
+#include "menu.h"
 #include "pico/stdlib.h"
 #include "pico/time.h"
 #include <stdio.h>
 #include <string.h>
 #include <u8g2.h>
-#include "menu.h"
+
+#ifdef CYW43_WL_GPIO_LED_PIN
+#include "pico/cyw43_arch.h"
+#endif
 
 #define UART_ID uart1
 #define BAUD_RATE 9600
@@ -32,12 +36,9 @@ typedef struct char_stats {
 char_stats_t pet;
 menu_t menu;
 
-int menu_test(void) {
-  return 1;
-}
+int menu_test(void) { return 1; }
 
-void init_game(u8g2_t* u8g2)
-{
+void init_game(u8g2_t *u8g2) {
   pet = (char_stats_t){
       .hunger = 25,
       .money = 10,
@@ -66,7 +67,6 @@ void pet_draw(u8g2_t *draw, char_stats_t *pet) {
   u8g2_DrawFrame(draw, PET_MONEY_POS_X, y_pos, 100, 5);
   int percentage = (pet->hunger * 100 / MAX_HUNGER * 100) / 100;
   u8g2_DrawBox(draw, PET_MONEY_POS_X, y_pos, percentage, 5);
-
 }
 
 uint8_t u8x8_byte_pico_hw_spi(u8x8_t *u8x8, uint8_t msg, uint8_t arg_int,
@@ -149,7 +149,7 @@ uint8_t u8x8_gpio_and_delay_pico(u8x8_t *u8x8, uint8_t msg, uint8_t arg_int,
 
 void draw_display() {
   u8g2_ClearBuffer(&u8g2);
-  //u8g2_ClearDisplay(&u8g2);
+  // u8g2_ClearDisplay(&u8g2);
   u8g2_SetDrawColor(&u8g2, 1);
   u8g2_SetFont(&u8g2, u8g2_font_fur14_tf);
   //*out_width = u8g2_DrawStr(&u8g2, x, y, text);
@@ -160,7 +160,7 @@ void draw_display() {
 
 void display_sequence() {
   u8g2_Setup_sh1107_seeed_128x128_f(&u8g2, U8G2_R0, u8x8_byte_pico_hw_spi,
-                              u8x8_gpio_and_delay_pico);
+                                    u8x8_gpio_and_delay_pico);
 
   u8g2_InitDisplay(&u8g2); // send init sequence to the display, display is in
                            // sleep mode after this,
@@ -179,8 +179,12 @@ int main() {
   // U8G2
   display_sequence();
 
-
   stdio_init_all();
+
+  cyw43_arch_init();
+  cyw43_arch_enable_ap_mode("eggwatchtest", "bingbong123",
+                            CYW43_AUTH_WPA2_AES_PSK);
+
   while (1) {
     pet.hunger++;
     pet.hunger %= MAX_HUNGER;
@@ -188,6 +192,9 @@ int main() {
     /* sprintf(text_buf, "time: %u", time); */
     draw_display();
 
+    cyw43_arch_poll();
+    // you can poll as often as you like, however if you have nothing else to do you can
+    // choose to sleep until either a specified time, or cyw43_arch_poll() has work to do:
     sleep_ms(10);
   }
 
