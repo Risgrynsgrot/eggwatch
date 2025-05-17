@@ -27,6 +27,17 @@ u8g2_t u8g2;
 #define PIN_DC 4
 #define PIN_RST 11
 
+#define PIN_BTN1 12
+#define PIN_BTN2 13
+#define PIN_BTN3 11
+#define PIN_BTN4 10
+
+int btn_1_pressed = 0;
+int btn_2_pressed = 0;
+int btn_3_pressed = 0;
+int btn_4_pressed = 0;
+
+
 #define MAX_HUNGER 100
 typedef struct char_stats {
   int hunger;
@@ -155,6 +166,17 @@ void draw_display() {
   //*out_width = u8g2_DrawStr(&u8g2, x, y, text);
   /* pet_draw(&u8g2, &pet); */
   menu_draw(&menu);
+
+  char buf[16];
+  sprintf(buf, "1 pressed: %d", btn_1_pressed);
+  u8g2_DrawStr(&u8g2, 32, 64, buf);
+  sprintf(buf, "2 pressed: %d", btn_2_pressed);
+  u8g2_DrawStr(&u8g2, 32, 75, buf);
+  sprintf(buf, "3 pressed: %d", btn_3_pressed);
+  u8g2_DrawStr(&u8g2, 32, 84, buf);
+  sprintf(buf, "4 pressed: %d", btn_4_pressed);
+  u8g2_DrawStr(&u8g2, 32, 95, buf);
+
   u8g2_UpdateDisplay(&u8g2);
 }
 
@@ -169,10 +191,34 @@ void display_sequence() {
   /* draw_display(20, 20, "Hello world", &out_width); */
 }
 
+int btn_set_pressed(uint btn_id, int cur_val) {
+    if (!gpio_get(btn_id) && cur_val == 0) {
+      /* menu.selected_index++; */
+      /* menu.selected_index %= menu.item_count; */
+      return 1;
+    }
+    if (!gpio_get(btn_id) && cur_val == 1) {
+      return 2;
+    }
+    if (gpio_get(btn_id)) {
+      return 0;
+    }
+}
+
 int main() {
   uart_init(UART_ID, BAUD_RATE);
   gpio_set_function(UART_TX_PIN, GPIO_FUNC_UART);
   gpio_set_function(UART_RX_PIN, GPIO_FUNC_UART);
+
+  gpio_init(PIN_BTN1);
+  gpio_init(PIN_BTN2);
+  gpio_init(PIN_BTN3);
+  gpio_init(PIN_BTN4);
+
+  gpio_set_dir(PIN_BTN1, GPIO_IN);
+  gpio_set_dir(PIN_BTN2, GPIO_IN);
+  gpio_set_dir(PIN_BTN3, GPIO_IN);
+  gpio_set_dir(PIN_BTN4, GPIO_IN);
 
   init_game(&u8g2);
 
@@ -182,12 +228,19 @@ int main() {
   stdio_init_all();
 
   cyw43_arch_init();
-  cyw43_arch_enable_ap_mode("eggwatchtest", "bingbong123",
-                            CYW43_AUTH_WPA2_AES_PSK);
+  /* cyw43_arch_enable_ap_mode("eggwatchtest", "bingbong123", */
+  /*                           CYW43_AUTH_WPA2_AES_PSK); */
 
   while (1) {
     pet.hunger++;
     pet.hunger %= MAX_HUNGER;
+
+    btn_1_pressed = btn_set_pressed(PIN_BTN1, btn_1_pressed);
+    btn_2_pressed = btn_set_pressed(PIN_BTN2, btn_2_pressed);
+    btn_3_pressed = btn_set_pressed(PIN_BTN3, btn_3_pressed);
+    btn_4_pressed = btn_set_pressed(PIN_BTN4, btn_4_pressed);
+
+    
     /* uint32_t time = to_ms_since_boot(get_absolute_time()); */
     /* sprintf(text_buf, "time: %u", time); */
     draw_display();
